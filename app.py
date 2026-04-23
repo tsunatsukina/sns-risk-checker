@@ -69,10 +69,10 @@ user_input = st.text_area("投稿予定の文章:", placeholder="チェックし
 # 診断ロジック
 if st.button("リスクを徹底診断！"):
     if user_input:
-        with st.spinner('慎重に確認しています...'):
+        with st.spinner('Gemini 3 が慎重に確認中...'):
             try:
-                # 【修正ポイント】モデル名を 'gemini-1.5-flash' または 'models/gemini-1.5-flash' に
-                model = genai.GenerativeModel("models/gemini-1.5-flash")
+                # 【ここが最重要！】Gemini 3 Flash を指定
+                model = genai.GenerativeModel("gemini-3-flash")
                 
                 prompt = (
                     "あなたはSNSリスク管理のプロフェッショナルです。以下の文章を分析し、必ず以下の形式で回答してください。\n\n"
@@ -84,29 +84,4 @@ if st.button("リスクを徹底診断！"):
                     f"文章：{user_input}"
                 )
                 
-                response = model.generate_content(prompt)
-                res_text = response.text
-
-                # --- 50%判定ロジック ---
-                score = 0
-                score_match = re.search(r'(\d+)%', res_text)
-                if score_match:
-                    score = int(score_match.group(1))
-
-                # 判定による警告表示
-                if score >= 50:
-                    st.error(f"### 🚨 リスク度 {score}%：炎上しちゃうよ！")
-                    st.markdown("**このまま投稿するのは非常に危険です。改善案を参考にしてください！**")
-                elif score >= 30:
-                    st.warning(f"### ⚠️ リスク度 {score}%：ちょっと心配かも")
-                else:
-                    st.success(f"### ✅ リスク度 {score}%：安心だね！")
-
-                st.subheader("🔍 診断レポート")
-                st.info(res_text)
-
-            except Exception as e:
-                # 具体的なエラーメッセージを表示
-                st.error(f"診断中にエラーが発生しました。設定を確認してください。\nエラー内容: {e}")
-    else:
-        st.warning("文章を入力してください。")
+                response = model.generate
