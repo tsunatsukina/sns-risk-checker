@@ -15,7 +15,7 @@ genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 # 🎨 画像を読み込む関数
 @st.cache_data
 def load_image():
-    # ★ここをご自身のGitHubユーザー名に書き換えてください
+    # ★ここを自分の名前に変えるのを忘れずに！
     user_name = "tsunatsukina" 
     repo_name = "sns-risk-checker"
     file_name = "flame_cute.png"
@@ -64,49 +64,42 @@ div.stButton > button:first-child {
 """, unsafe_allow_html=True)
 
 # 入力エリア
-user_input = st.text_area("投稿予定の文章:", placeholder="チェックしたい内容を入力してください...", height=150)
+user_input = st.text_area("投稿予定の文章:", placeholder="チェックしたい内容を入力...", height=150)
 
 # 診断ロジック
 if st.button("リスクを徹底診断！"):
     if user_input:
-        with st.spinner('Gemini 3 が慎重に確認中...'):
+        with st.spinner('慎重に確認中...'):
             try:
-                # Gemini 3 Flash を指定
-                model = genai.GenerativeModel("gemini-3-flash")
+                # 【運命の1行】APIバージョンを明示的に指定してエラーを回避
+                model = genai.GenerativeModel(
+                    model_name="gemini-1.5-flash"
+                )
                 
                 prompt = (
-                    "あなたはSNSリスク管理のプロフェッショナルです。以下の文章を分析し、必ず以下の形式で回答してください。\n\n"
+                    "あなたはSNSリスク管理のプロです。以下の文章を分析し、以下の形式で回答して。\n\n"
                     "1. 【炎上リスク度】: 〇〇%\n"
                     "2. 【判定】: 安全・注意・危険の3段階\n"
                     "3. 【理由】: なぜそのリスクがあるのか、簡潔に。\n"
-                    "4. 【改善案】: リスクを下げて、より良くなる言い換え案。\n"
+                    "4. 【改善案】: より良くなる言い換え案。\n"
                     "5. 【もしもの時の謝罪文】: 万が一批判を受けた際の謝罪例文。\n\n"
                     f"文章：{user_input}"
                 )
                 
-                # ここが途切れないようにしっかりコピーしてね！
                 response = model.generate_content(prompt)
                 res_text = response.text
 
-                # 50%判定ロジック
+                # 数値読み取り
                 score = 0
                 score_match = re.search(r'(\d+)%', res_text)
                 if score_match:
                     score = int(score_match.group(1))
 
-                # 判定による警告表示
+                # 50%警告
                 if score >= 50:
                     st.error(f"### 🚨 リスク度 {score}%：炎上しちゃうよ！")
-                    st.markdown("**このまま投稿するのは非常に危険です。改善案を参考にしてください！**")
+                    st.markdown("**このまま投稿するのは非常に危険です！**")
                 elif score >= 30:
                     st.warning(f"### ⚠️ リスク度 {score}%：ちょっと心配かも")
                 else:
                     st.success(f"### ✅ リスク度 {score}%：安心だね！")
-
-                st.subheader("🔍 診断レポート")
-                st.info(res_text)
-
-            except Exception as e:
-                st.error(f"診断中にエラーが発生しました。\nエラー内容: {e}")
-    else:
-        st.warning("文章を入力してください。")
