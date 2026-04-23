@@ -1,17 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
-
-# ① ページの設定
-st.set_page_config(
-    page_title="SNSリスク守護神「リトル・フレイム」", 
-    page_icon="🔥", 
-    layout="centered"
-)
-
-# APIキーの設定（Secretsから読み込み）
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-import streamlit as st
-import google.generativeai as genai
+import re
 
 # ① ページの設定
 st.set_page_config(
@@ -46,13 +35,13 @@ with st.sidebar:
     st.title("About")
     st.write("投稿前のひと呼吸。AIと炎の騎士が、あなたのSNSライフを守ります。")
 
-# メイン画面（イラストとタイトル）
+# メイン画面
 if char_image:
     st.markdown(f'<div style="text-align: center;"><img src="{char_image}" width="100"></div>', unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align: center; color: #333;'>SNS Risk Checker</h1>", unsafe_allow_html=True)
 
-# 🎨 ポップかつ清潔感のあるCSS
+# 🎨 デザインCSS
 st.markdown("""
 <style>
 div.stButton > button:first-child {
@@ -82,27 +71,29 @@ if st.button("リスクを徹底診断！"):
     if user_input:
         with st.spinner('慎重に確認しています...'):
             try:
-                model = genai.GenerativeModel("gemini-1.5-flash")
-                # 指示内容：数値を必ず出すように
+                # 【修正ポイント】モデル名を 'gemini-1.5-flash' または 'models/gemini-1.5-flash' に
+                model = genai.GenerativeModel("models/gemini-1.5-flash")
+                
                 prompt = (
                     "あなたはSNSリスク管理のプロフェッショナルです。以下の文章を分析し、必ず以下の形式で回答してください。\n\n"
-                    "1. 【炎上リスク度】: 〇〇%（数値だけで回答して）\n"
+                    "1. 【炎上リスク度】: 〇〇%\n"
                     "2. 【判定】: 安全・注意・危険の3段階\n"
                     "3. 【理由】: なぜそのリスクがあるのか、簡潔に。\n"
                     "4. 【改善案】: リスクを下げて、より良くなる言い換え案。\n"
                     "5. 【もしもの時の謝罪文】: 万が一批判を受けた際の謝罪例文。\n\n"
                     f"文章：{user_input}"
                 )
+                
                 response = model.generate_content(prompt)
                 res_text = response.text
 
                 # --- 50%判定ロジック ---
-                # テキストから数字を抽出する簡易的な処理
-                import re
+                score = 0
                 score_match = re.search(r'(\d+)%', res_text)
-                score = int(score_match.group(1)) if score_match else 0
+                if score_match:
+                    score = int(score_match.group(1))
 
-                # 警告メッセージの表示
+                # 判定による警告表示
                 if score >= 50:
                     st.error(f"### 🚨 リスク度 {score}%：炎上しちゃうよ！")
                     st.markdown("**このまま投稿するのは非常に危険です。改善案を参考にしてください！**")
@@ -115,6 +106,7 @@ if st.button("リスクを徹底診断！"):
                 st.info(res_text)
 
             except Exception as e:
-                st.error(f"エラーが発生しました: {e}")
+                # 具体的なエラーメッセージを表示
+                st.error(f"診断中にエラーが発生しました。設定を確認してください。\nエラー内容: {e}")
     else:
         st.warning("文章を入力してください。")
