@@ -10,71 +10,111 @@ st.set_page_config(
 
 # APIキーの設定（Secretsから読み込み）
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+import streamlit as st
+import google.generativeai as genai
 
-# 🎨 画像（炎のキャラクター）を読み込む関数
+# ① ページの設定
+st.set_page_config(
+    page_title="SNS Risk Checker", 
+    page_icon="🔥", 
+    layout="centered"
+)
+
+# APIキーの設定
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+
+# 🎨 画像を読み込む関数
 @st.cache_data
 def load_image():
-    # tsunatsukina
+    # ★ここをご自身のGitHubユーザー名に書き換えてください
     user_name = "tsunatsukina" 
     repo_name = "sns-risk-checker"
     file_name = "flame_cute.png"
     image_url = f"https://raw.githubusercontent.com/{user_name}/{repo_name}/main/{file_name}"
     return image_url
 
-# 画像のURLを取得
+# 画像の取得
 try:
-    flame_image = load_image()
+    char_image = load_image()
 except:
-    flame_image = "🔥"
+    char_image = None
 
-# ③ サイドバーの設定
+# ③ サイドバー
 with st.sidebar:
-    if isinstance(flame_image, str) and flame_image.startswith("http"):
-        st.image(flame_image, width=150) 
-    else:
-        st.title("🔥")
-        
-    st.title("💡 使い方")
-    st.write("""
-    1. 下の入力欄に投稿したい文章を貼るよ。
-    2. 「診断する」ボタンを押すよ。
-    3. AIとリトル・フレイムが炎上リスクをチェックするよ！
-    """)
-    st.divider()
-    st.caption("powered by Gemini AI & Little Flame")
+    if char_image:
+        st.image(char_image, width=150)
+    st.title("About")
+    st.write("投稿前のひと呼吸。AIと炎の騎士が、あなたのSNSライフを守ります。")
 
-# メイン画面のタイトル周り
-col1, col2 = st.columns([1, 4])
-with col1:
-    if isinstance(flame_image, str) and flame_image.startswith("http"):
-        st.image(flame_image, width=80) 
-with col2:
-    st.title("🛡️ SNSリスク守護神")
-    st.subheader("〜 リトル・フレイムが守るよ〜 〜")
+# メイン画面（イラストとタイトル）
+if char_image:
+    st.markdown(f'<div style="text-align: center;"><img src="{char_image}" width="100"></div>', unsafe_allow_html=True)
 
-st.write("あなたの投稿、世界に出しても大丈夫？公開前にリトル・フレイムが最終チェックします。")
+st.markdown("<h1 style='text-align: center; color: #333;'>SNS Risk Checker</h1>", unsafe_allow_html=True)
 
-# 入力エリア
-user_input = st.text_area("投稿予定の文章を入力してください:", placeholder="ここに文章をペーストしてね")
-
-# 🎨 ポップなボタンとデザインのCSS（修正済み）
+# 🎨 ポップかつ清潔感のあるCSS
 st.markdown("""
 <style>
 div.stButton > button:first-child {
-    background-color: #FF4500;
+    background-color: #FF8C00;
     color: white;
-    border-radius: 20px;
+    border-radius: 12px;
     border: none;
-    height: 3em;
+    height: 3.5em;
     width: 100%;
     font-weight: bold;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-size: 1.1em;
 }
 .stTextArea textarea {
+    border-radius: 12px;
+}
+.stAlert {
     border-radius: 15px;
 }
 </style>
 """, unsafe_allow_html=True)
 
+# 入力エリア
+user_input = st.text_area("投稿予定の文章:", placeholder="チェックしたい内容を入力してください...", height=150)
+
 # 診断ロジック
-if st.
+if st.button("リスクを徹底診断！"):
+    if user_input:
+        with st.spinner('慎重に確認しています...'):
+            try:
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                # 指示内容：数値を必ず出すように
+                prompt = (
+                    "あなたはSNSリスク管理のプロフェッショナルです。以下の文章を分析し、必ず以下の形式で回答してください。\n\n"
+                    "1. 【炎上リスク度】: 〇〇%（数値だけで回答して）\n"
+                    "2. 【判定】: 安全・注意・危険の3段階\n"
+                    "3. 【理由】: なぜそのリスクがあるのか、簡潔に。\n"
+                    "4. 【改善案】: リスクを下げて、より良くなる言い換え案。\n"
+                    "5. 【もしもの時の謝罪文】: 万が一批判を受けた際の謝罪例文。\n\n"
+                    f"文章：{user_input}"
+                )
+                response = model.generate_content(prompt)
+                res_text = response.text
+
+                # --- 50%判定ロジック ---
+                # テキストから数字を抽出する簡易的な処理
+                import re
+                score_match = re.search(r'(\d+)%', res_text)
+                score = int(score_match.group(1)) if score_match else 0
+
+                # 警告メッセージの表示
+                if score >= 50:
+                    st.error(f"### 🚨 リスク度 {score}%：炎上しちゃうよ！")
+                    st.markdown("**このまま投稿するのは非常に危険です。改善案を参考にしてください！**")
+                elif score >= 30:
+                    st.warning(f"### ⚠️ リスク度 {score}%：ちょっと心配かも")
+                else:
+                    st.success(f"### ✅ リスク度 {score}%：安心だね！")
+
+                st.subheader("🔍 診断レポート")
+                st.info(res_text)
+
+            except Exception as e:
+                st.error(f"エラーが発生しました: {e}")
+    else:
+        st.warning("文章を入力してください。")
