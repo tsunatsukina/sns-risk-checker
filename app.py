@@ -8,12 +8,11 @@ st.set_page_config(page_title="SNS Risk Checker", page_icon="🔥")
 # APIキー設定
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-# 🎨 画像読み込み（ユーザー名を書き換えてください）
+# 🎨 画像読み込み
 @st.cache_data
 def load_image():
     user_name = "tsunatsukina" 
-    url = f"https://raw.githubusercontent.com/{user_name}/sns-risk-checker/main/flame_cute.png"
-    return url
+    return f"https://raw.githubusercontent.com/{user_name}/sns-risk-checker/main/flame_cute.png"
 
 img_url = load_image()
 
@@ -21,15 +20,11 @@ img_url = load_image()
 with st.sidebar:
     if img_url:
         st.image(img_url, width=150)
-    else:
-        st.write("🔥")
     st.title("About")
     st.write("SNS投稿前のリスク診断。")
 
 # メイン画面
 st.title("SNS Risk Checker")
-if img_url:
-    st.image(img_url, width=100)
 
 user_input = st.text_area("投稿予定の文章:", placeholder="チェックしたい内容を入力...", height=150)
 
@@ -38,12 +33,20 @@ if st.button("リスクを徹底診断！"):
     if user_input:
         with st.spinner('診断中...'):
             try:
-                # 【ここを修正】v1beta環境でもっともエラーが出にくい指定方法です
-                model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+                # 【2026年最新仕様】モデル名を明示的に 'gemini-3-flash' に固定
+                # もしこれでも404が出る場合は APIキー側の権限の問題です
+                model = genai.GenerativeModel("gemini-3-flash")
                 
-                prompt = f"SNSリスクをプロの視点で分析してください。以下の形式で回答して。1.【炎上リスク度】: 〇〇% 2.【判定】 3.【理由】 4.【改善案】 5.【謝罪文】\n文章：{user_input}"
+                prompt = (
+                    "SNSリスクを分析してください。以下の形式で回答すること。\n"
+                    "1.【炎上リスク度】: 〇〇%\n"
+                    "2.【判定】: 安全・注意・危険\n"
+                    "3.【理由】: 簡潔に\n"
+                    "4.【改善案】: 言い換え案\n"
+                    "5.【謝罪文】: 例文\n\n"
+                    f"文章：{user_input}"
+                )
                 
-                # API呼び出し
                 response = model.generate_content(prompt)
                 res = response.text
 
@@ -65,8 +68,7 @@ if st.button("リスクを徹底診断！"):
                 st.info(res)
                 
             except Exception as e:
-                # ここでエラーが出た場合、別のモデル名での接続を試みる
-                st.error("モデルの接続でエラーが発生しました。予備の接続を試みてください。")
-                st.code(f"Error Details: {e}")
+                st.error("エラーが発生しました。時間を置いて試してください。")
+                st.code(f"Error: {e}")
     else:
         st.warning("文章を入力してください。")
