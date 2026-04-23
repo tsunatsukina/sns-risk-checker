@@ -1,88 +1,78 @@
 import streamlit as st
 import google.generativeai as genai
-import re
+from PIL import Image  # 画像を扱うための道具
 
-# --- 1. 鍵の差し込み ---
-API_KEY = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=API_KEY)
+# ① ページの設定（アイコンも炎に！）
+st.set_page_config(
+    page_title="SNSリスク守護神「リトル・フレイム」", 
+    page_icon="🔥", 
+    layout="centered"
+)
 
-# スクリーンショットに表示されていた最新モデル名を指定
-model = genai.GenerativeModel('gemini-3-flash-preview')
+# 🎨 画像（炎のキャラクター）を読み込む関数
+@st.cache_data  # 画像を高速に読み込むための設定
+def load_image():
+    # GitHub上の画像URLを指定します。
+    # ※ 重要：'tsunatsukina' を実際のGitHubユーザー名に書き換えてください！
+    user_name = "tsunatsukina" 
+    repo_name = "sns-risk-checker" # リポジトリ名が違う場合はここも変更
+    file_name = "flame_cute.png"
+    image_url = f"https://raw.githubusercontent.com/{user_name}/{repo_name}/main/{file_name}"
+    return image_url
 
-# --- 2. 見た目の設定 ---
-st.set_page_config(page_title="SNSリスク守護神", page_icon="🛡️")
+# 画像のURLを取得
+try:
+    flame_image = load_image()
+except:
+    # もし画像が読み込めなかった場合の予備（絵文字）
+    flame_image = "🔥"
 
-st.markdown("""
-    <style>
-    .main { background-color: #f8f9fa; }
-    .stButton>button {
-        width: 100%;
-        border-radius: 25px;
-        background: linear-gradient(to right, #4b6cb7, #182848);
-        color: white;
-        font-weight: bold;
-        height: 3.5em;
-        border: none;
-    }
-    .risk-box {
-        padding: 20px;
-        border-radius: 15px;
-        color: white;
-        text-align: center;
-        font-size: 24px;
-        font-weight: bold;
-        margin-bottom: 20px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 3. メイン画面 ---
-st.title("🛡️ SNSリスク守護神")
-st.write("「必死に炎上を食い止める」最新AIが参上しました。")
-
-user_input = st.text_area("✍️ 投稿の『下書き』をどうぞ:", placeholder="ここに入力した内容は、まだ誰にも見られません...", height=150)
-
-if st.button("🚀 リスク診断を実行"):
-    if user_input:
-        with st.spinner('AIが必死に炎上を食い止めています...'):
-            try:
-                prompt = f"""
-                あなたは伝説のSNSリスク管理エキスパートです。
-                シニカルだけど愛のある口調で、以下の投稿を分析してください。
-
-                【炎上期待値】0〜100の数値と理由
-                【エキスパートの独り言】問題点の指摘
-                【平和な世界線への書き換え】改善案
-                【万が一の鎮火用テンプレート】謝罪文
-
-                投稿文：{user_input}
-                """
-
-                response = model.generate_content(prompt)
-                text = response.text
-
-                # 数値を抽出して色分け
-                score_match = re.search(r'\d+', text)
-                score = int(score_match.group()) if score_match else 50
-
-                if score <= 30: bg_color, status = "#28a745", "✅ ほぼ安全！"
-                elif score <= 70: bg_color, status = "#ffc107", "⚠️ 要注意！"
-                else: bg_color, status = "#dc3545", "🚫 激ヤバ！"
-
-                st.markdown(f"""
-                    <div class="risk-box" style="background-color: {bg_color};">
-                        炎上リスク：{score}%<br>
-                        <span style="font-size: 16px;">{status}</span>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                st.success("✅ 鑑定完了！")
-                st.write(text)
-                
-            except Exception as e:
-                st.error(f"エラーが発生しました。")
-                st.info(f"詳細: {e}")
+# ③ サイドバーの設定
+with st.sidebar:
+    # --- サイドバーのトップに画像を配置！ ---
+    if isinstance(flame_image, str) and flame_image.startswith("http"):
+        st.image(flame_image, width=150) 
     else:
-        st.warning("⚠️ 文章を入力してください")
+        st.title(flame_image) # 予備の絵文字を表示
+        
+    st.title("💡 使い方")
+    st.write("""
+    1. 投稿したい文章を貼ります。
+    2. 「診断する」を押します。
+    3. AIとリトル・フレイムがチェック！
+    """)
+    st.divider()
+    st.caption("powered by Gemini AI & Little Flame")
 
-st.caption("© 2026 SNSリスク守護神プロジェクト")
+# メイン画面のタイトル周り
+col1, col2 = st.columns([1, 4]) # 画面を横に分割して、画像とタイトルを並べる
+with col1:
+    # --- タイトルの横に画像を配置！ ---
+    if isinstance(flame_image, str) and flame_image.startswith("http"):
+        st.image(flame_image, width=80) 
+with col2:
+    st.title("🛡️ SNSリスク守護神")
+    st.subheader("〜 リトル・フレイムがチェック！ 〜")
+
+st.write("あなたの投稿、世界に出しても大丈夫？公開前にAIとリトル・フレイムが最終チェックします。")
+
+# --- ポップにするためのCSS（おまじない） ---
+# 炎に合わせてボタンの色を暖色系（赤オレンジ）に。
+st.markdown("""
+<style>
+/* ボタンをポップな赤オレンジ色に */
+div.stButton > button:first-child {
+    background-color: #FF4500;
+    color: white;
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+/* 入力欄を丸く */
+.stTextArea textarea {
+    border-radius: 15px;
+}
+</style>
+""", unsafe_allow_stdio=True)
+
+# (ここから下は、前のコードのAPI設定やボタンの部分をそのまま続けてください)
