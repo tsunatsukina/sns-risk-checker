@@ -2,104 +2,56 @@ import streamlit as st
 import google.generativeai as genai
 import re
 
-# ① ページの設定
-st.set_page_config(
-    page_title="SNS Risk Checker", 
-    page_icon="🔥", 
-    layout="centered"
-)
+# ① ページ設定
+st.set_page_config(page_title="SNS Risk Checker", page_icon="🔥")
 
-# APIキーの設定
+# APIキー設定
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-# 🎨 画像を読み込む関数
+# 🎨 画像読み込み（ユーザー名は自分のものに変えてね）
 @st.cache_data
 def load_image():
-    # ★ここを自分の名前に変えるのを忘れずに！
     user_name = "tsunatsukina" 
-    repo_name = "sns-risk-checker"
-    file_name = "flame_cute.png"
-    image_url = f"https://raw.githubusercontent.com/{user_name}/{repo_name}/main/{file_name}"
-    return image_url
+    url = f"https://raw.githubusercontent.com/{user_name}/sns-risk-checker/main/flame_cute.png"
+    return url
 
-# 画像の取得
-try:
-    char_image = load_image()
-except:
-    char_image = None
-
-# ③ サイドバー
+# サイドバーとメイン表示
+img = load_image()
 with st.sidebar:
-    if char_image:
-        st.image(char_image, width=150)
+    st.image(img, width=150) if img else st.write("🔥")
     st.title("About")
-    st.write("投稿前のひと呼吸。AIと炎の騎士が、あなたのSNSライフを守ります。")
+    st.write("SNSライフを守る騎士だにょ…あ、失礼。守護神です。")
 
-# メイン画面（イラスト）
-if char_image:
-    st.markdown(f'<div style="text-align: center;"><img src="{char_image}" width="100"></div>', unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>SNS Risk Checker</h1>", unsafe_allow_html=True)
+if img: st.markdown(f'<div style="text-align: center;"><img src="{img}" width="100"></div>', unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center; color: #333;'>SNS Risk Checker</h1>", unsafe_allow_html=True)
-
-# 🎨 デザインCSS
-st.markdown("""
-<style>
-div.stButton > button:first-child {
-    background-color: #FF8C00;
-    color: white;
-    border-radius: 12px;
-    border: none;
-    height: 3.5em;
-    width: 100%;
-    font-weight: bold;
-    font-size: 1.1em;
-}
-.stTextArea textarea {
-    border-radius: 12px;
-}
-.stAlert {
-    border-radius: 15px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# 入力エリア
+# 入力欄
 user_input = st.text_area("投稿予定の文章:", placeholder="チェックしたい内容を入力...", height=150)
 
 # 診断ロジック
 if st.button("リスクを徹底診断！"):
     if user_input:
-        with st.spinner('慎重に確認中...'):
+        with st.spinner('確認中...'):
             try:
-                # 【運命の1行】APIバージョンを明示的に指定してエラーを回避
-                model = genai.GenerativeModel(
-                    model_name="gemini-1.5-flash"
-                )
-                
-                prompt = (
-                    "あなたはSNSリスク管理のプロです。以下の文章を分析し、以下の形式で回答して。\n\n"
-                    "1. 【炎上リスク度】: 〇〇%\n"
-                    "2. 【判定】: 安全・注意・危険の3段階\n"
-                    "3. 【理由】: なぜそのリスクがあるのか、簡潔に。\n"
-                    "4. 【改善案】: より良くなる言い換え案。\n"
-                    "5. 【もしもの時の謝罪文】: 万が一批判を受けた際の謝罪例文。\n\n"
-                    f"文章：{user_input}"
-                )
-                
+                # 1.5-flashなら404エラーが出にくいのでこちらで固定します
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                prompt = f"SNSリスクを分析して。1.【炎上リスク度】: 〇〇% 2.【判定】 3.【理由】 4.【改善案】 5.【謝罪文】の形式で。文章：{user_input}"
                 response = model.generate_content(prompt)
-                res_text = response.text
+                res = response.text
 
-                # 数値読み取り
-                score = 0
-                score_match = re.search(r'(\d+)%', res_text)
-                if score_match:
-                    score = int(score_match.group(1))
+                # ％を抽出して判定
+                score = int(re.search(r'(\d+)%', res).group(1)) if re.search(r'(\d+)%', res) else 0
 
-                # 50%警告
                 if score >= 50:
                     st.error(f"### 🚨 リスク度 {score}%：炎上しちゃうよ！")
-                    st.markdown("**このまま投稿するのは非常に危険です！**")
                 elif score >= 30:
-                    st.warning(f"### ⚠️ リスク度 {score}%：ちょっと心配かも")
+                    st.warning(f"### ⚠️ リスク度 {score}%：注意が必要だね")
                 else:
                     st.success(f"### ✅ リスク度 {score}%：安心だね！")
+
+                st.subheader("🔍 診断レポート")
+                st.info(res)
+            except Exception as e:
+                st.error(f"エラーだにょ…いや、エラーです: {e}")
+    else:
+        st.warning("文章を入力してください。")
