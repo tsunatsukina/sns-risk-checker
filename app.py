@@ -15,7 +15,7 @@ genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 # 🎨 画像を読み込む関数
 @st.cache_data
 def load_image():
-    # ★ここを自分のGitHubユーザー名に書き換えてね！
+    # ★ここをご自身のGitHubユーザー名に書き換えてください
     user_name = "tsunatsukina" 
     repo_name = "sns-risk-checker"
     file_name = "flame_cute.png"
@@ -84,7 +84,7 @@ if st.button("リスクを徹底診断！"):
                     f"文章：{user_input}"
                 )
                 
-                # ここが途切れないように注意！
+                # ここが途切れないようにしっかりコピーしてね！
                 response = model.generate_content(prompt)
                 res_text = response.text
 
